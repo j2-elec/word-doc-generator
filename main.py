@@ -1,28 +1,30 @@
 """
-FACTURA Generator - Word Document Filler
-Local desktop application for generating documents from a Word template.
+Document Generator - FACTURA Generator + SOMATII Batch Generator
+Local desktop application (Tkinter) for generating Word documents from templates.
 
 Requirements:
-    pip install python-docx
+    pip install -r requirements.txt
 
 Usage:
     python main.py
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, scrolledtext
 import os
 import sys
 import re
+import threading
 from datetime import datetime
 
 try:
     from docx import Document
 except ImportError:
-    print("python-docx is not installed. Run: pip install python-docx")
+    print("python-docx is not installed. Run: pip install -r requirements.txt")
     sys.exit(1)
 
 from field_config import FACTURA_FIELDS, PLACEHOLDER_MAP, UPPERCASE_BOLD_FIELDS, UNDERLINE_FIELDS
+import somatie_generator
 
 TEMPLATE_PATH = "templates/factura_template.docx"
 OUTPUT_DIR = "output"
@@ -36,11 +38,11 @@ def validate_number(value: str) -> bool:
     return value.strip().isdigit()
 
 
-class FacturaGeneratorApp(tk.Tk):
+class DocumentGeneratorApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Document Generator")
-        self.geometry("560x780")
+        self.geometry("620x820")
         self.resizable(False, False)
 
         self.mode_var = tk.StringVar(value="factura")
@@ -59,57 +61,51 @@ class FacturaGeneratorApp(tk.Tk):
 
         ttk.Radiobutton(
             radio_frame, text="FACTURA Generator", variable=self.mode_var,
-            value="factura", command=self._render_fields
+            value="factura", command=self._render_mode
         ).pack(side="left", padx=(0, 20))
 
         ttk.Radiobutton(
-            radio_frame, text="Second document type (coming soon)", variable=self.mode_var,
-            value="other", state="disabled"
+            radio_frame, text="SOMATII Generator", variable=self.mode_var,
+            value="somatii", command=self._render_mode
         ).pack(side="left")
 
         ttk.Separator(self, orient="horizontal").pack(fill="x", padx=10, pady=5)
 
-        container = ttk.Frame(self)
+        self.mode_container = ttk.Frame(self)
+        self.mode_container.pack(fill="both", expand=True)
+
+        self._render_mode()
+
+    def _clear_mode_container(self):
+        for widget in self.mode_container.winfo_children():
+            widget.destroy()
+        self.entries.clear()
+
+    def _render_mode(self):
+        self._clear_mode_container()
+        mode = self.mode_var.get()
+        if mode == "factura":
+            self._render_factura_ui()
+        elif mode == "somatii":
+            self._render_somatii_ui()
+
+    # ------------------------------------------------------------------
+    # FACTURA GENERATOR
+    # ------------------------------------------------------------------
+    def _render_factura_ui(self):
+        container = ttk.Frame(self.mode_container)
         container.pack(fill="both", expand=True)
 
         canvas = tk.Canvas(container, borderwidth=0, highlightthickness=0)
         scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
-        self.scroll_frame = ttk.Frame(canvas)
+        scroll_frame = ttk.Frame(canvas)
 
-        self.scroll_frame.bind(
-            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
+        scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
         canvas.pack(side="left", fill="both", expand=True, padx=(10, 0))
         scrollbar.pack(side="right", fill="y")
-
-        self.form_container = self.scroll_frame
-
-        bottom_frame = ttk.Frame(self, padding=10)
-        bottom_frame.pack(fill="x")
-
-        self.generate_btn = tk.Button(
-            bottom_frame, text="GENERATE", font=("Segoe UI", 14, "bold"),
-            bg="#2e7d32", fg="white", activebackground="#1b5e20",
-            height=2, command=self.on_generate
-        )
-        self.generate_btn.pack(fill="x")
-
-        self.status_label = ttk.Label(bottom_frame, text="", foreground="#555")
-        self.status_label.pack(pady=(6, 0))
-
-        self._render_fields()
-
-    def _render_fields(self):
-        for widget in self.form_container.winfo_children():
-            widget.destroy()
-        self.entries.clear()
-
-        mode = self.mode_var.get()
-        if mode != "factura":
-            return
 
         row = 0
         for field in FACTURA_FIELDS:
@@ -118,24 +114,37 @@ class FacturaGeneratorApp(tk.Tk):
             field_type = field.get("type", "text")
 
             if field.get("section_break"):
-                spacer = ttk.Label(self.form_container, text="")
+                spacer = ttk.Label(scroll_frame, text="")
                 spacer.grid(row=row, column=0, pady=8)
                 row += 1
 
-            label = ttk.Label(self.form_container, text=label_text, width=22, anchor="w")
+            label = ttk.Label(scroll_frame, text=label_text, width=22, anchor="w")
             label.grid(row=row, column=0, sticky="w", padx=10, pady=6)
 
-            entry = ttk.Entry(self.form_container, width=38)
+            entry = ttk.Entry(scroll_frame, width=38)
             entry.grid(row=row, column=1, sticky="w", padx=5, pady=6)
 
             if field_type == "date":
-                hint = ttk.Label(self.form_container, text="DD.MM.YYYY", foreground="#888")
+                hint = ttk.Label(scroll_frame, text="DD.MM.YYYY", foreground="#888")
                 hint.grid(row=row, column=2, sticky="w")
 
             self.entries[key] = entry
             row += 1
 
-    def _collect_values(self):
+        bottom_frame = ttk.Frame(self.mode_container, padding=10)
+        bottom_frame.pack(fill="x")
+
+        generate_btn = tk.Button(
+            bottom_frame, text="GENERATE", font=("Segoe UI", 14, "bold"),
+            bg="#2e7d32", fg="white", activebackground="#1b5e20",
+            height=2, command=self.on_generate_factura
+        )
+        generate_btn.pack(fill="x")
+
+        self.factura_status_label = ttk.Label(bottom_frame, text="", foreground="#555")
+        self.factura_status_label.pack(pady=(6, 0))
+
+    def _collect_factura_values(self):
         values = {}
         for field in FACTURA_FIELDS:
             key = field["key"]
@@ -152,17 +161,13 @@ class FacturaGeneratorApp(tk.Tk):
                 if not validate_number(raw_value):
                     raise ValueError(f"Field '{field['label']}' must contain only digits.")
 
-            if key in UPPERCASE_BOLD_FIELDS:
-                display_value = raw_value.upper()
-            else:
-                display_value = raw_value
-
+            display_value = raw_value.upper() if key in UPPERCASE_BOLD_FIELDS else raw_value
             values[key] = display_value
         return values
 
-    def on_generate(self):
+    def on_generate_factura(self):
         try:
-            values = self._collect_values()
+            values = self._collect_factura_values()
         except ValueError as e:
             messagebox.showerror("Invalid input", str(e))
             return
@@ -170,21 +175,20 @@ class FacturaGeneratorApp(tk.Tk):
         if not os.path.exists(TEMPLATE_PATH):
             messagebox.showerror(
                 "Template missing",
-                f"Could not find template at:\n{TEMPLATE_PATH}\n\n"
-                "Place your .docx template there before generating."
+                f"Could not find template at:\n{TEMPLATE_PATH}\n\nPlace your .docx template there before generating."
             )
             return
 
         try:
-            output_path = self.generate_document(values)
+            output_path = self.generate_factura_document(values)
         except Exception as e:
             messagebox.showerror("Generation failed", str(e))
             return
 
-        self.status_label.config(text=f"Saved: {output_path}")
+        self.factura_status_label.config(text=f"Saved: {output_path}")
         messagebox.showinfo("Success", f"Document generated:\n{output_path}")
 
-    def generate_document(self, values: dict) -> str:
+    def generate_factura_document(self, values: dict) -> str:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         doc = Document(TEMPLATE_PATH)
 
@@ -202,6 +206,76 @@ class FacturaGeneratorApp(tk.Tk):
         output_path = os.path.join(OUTPUT_DIR, filename)
         doc.save(output_path)
         return output_path
+
+    # ------------------------------------------------------------------
+    # SOMATII GENERATOR
+    # ------------------------------------------------------------------
+    def _render_somatii_ui(self):
+        info_frame = ttk.Frame(self.mode_container, padding=10)
+        info_frame.pack(fill="x")
+
+        info_text = (
+            "Reads source_excel.xlsx (last sheet, column L = 'somam'), and generates:\n"
+            "  - one somatie_<CompanyName>.docx per matching company\n"
+            "  - one combined envelope_toate_companiile.docx (one page per company)\n"
+            "  - one combined borderou_toate_companiile.docx (one table row per company)\n\n"
+            "Required files in this folder: source_excel.xlsx, template_somatie.docx,\n"
+            "template_envelope-2.docx, template_borderou-3.docx"
+        )
+        ttk.Label(info_frame, text=info_text, foreground="#444", justify="left").pack(anchor="w")
+
+        btn_frame = ttk.Frame(self.mode_container, padding=10)
+        btn_frame.pack(fill="x")
+
+        self.somatii_generate_btn = tk.Button(
+            btn_frame, text="GENERATE", font=("Segoe UI", 14, "bold"),
+            bg="#2e7d32", fg="white", activebackground="#1b5e20",
+            height=2, command=self.on_generate_somatii
+        )
+        self.somatii_generate_btn.pack(fill="x")
+
+        log_frame = ttk.Frame(self.mode_container, padding=(10, 5, 10, 10))
+        log_frame.pack(fill="both", expand=True)
+
+        ttk.Label(log_frame, text="Output log:", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+
+        self.somatii_log = scrolledtext.ScrolledText(
+            log_frame, height=24, font=("Consolas", 9), state="disabled",
+            bg="#1e1e1e", fg="#d4d4d4", insertbackground="#d4d4d4"
+        )
+        self.somatii_log.pack(fill="both", expand=True, pady=(4, 0))
+
+    def _log_somatii(self, message: str):
+        def append():
+            self.somatii_log.config(state="normal")
+            self.somatii_log.insert("end", message + "\n")
+            self.somatii_log.see("end")
+            self.somatii_log.config(state="disabled")
+        self.after(0, append)
+
+    def on_generate_somatii(self):
+        self.somatii_log.config(state="normal")
+        self.somatii_log.delete("1.0", "end")
+        self.somatii_log.config(state="disabled")
+
+        self.somatii_generate_btn.config(state="disabled", text="GENERATING...")
+
+        thread = threading.Thread(target=self._run_somatii_batch, daemon=True)
+        thread.start()
+
+    def _run_somatii_batch(self):
+        try:
+            self._log_somatii(f"=== Starting batch run: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
+            generated = somatie_generator.run_batch(log=self._log_somatii)
+            self._log_somatii(f"=== Finished. {len(generated)} file(s) generated. ===")
+            self.after(0, lambda: messagebox.showinfo(
+                "Success", f"Generated {len(generated)} file(s). See log for details."
+            ))
+        except Exception as e:
+            self._log_somatii(f"ERROR: {e}")
+            self.after(0, lambda: messagebox.showerror("Generation failed", str(e)))
+        finally:
+            self.after(0, lambda: self.somatii_generate_btn.config(state="normal", text="GENERATE"))
 
 
 def replace_placeholder_everywhere(doc, placeholder: str, value: str, bold: bool = False, underline: bool = False):
@@ -235,7 +309,6 @@ def _replace_in_paragraph(paragraph, placeholder: str, value: str, bold: bool, u
     new_full_text = full_text.replace(placeholder, value)
 
     if paragraph.runs:
-        template_run = paragraph.runs[0]
         for run in list(paragraph.runs):
             run.text = ""
         paragraph.runs[0].text = new_full_text
@@ -252,5 +325,5 @@ def _replace_in_paragraph(paragraph, placeholder: str, value: str, bold: bool, u
 
 
 if __name__ == "__main__":
-    app = FacturaGeneratorApp()
+    app = DocumentGeneratorApp()
     app.mainloop()

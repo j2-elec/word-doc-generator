@@ -1,95 +1,140 @@
-# Word Doc Generator - FACTURA Generator
+# Word Doc Generator
 
-A simple local desktop app (Tkinter GUI) that fills in a Word (`.docx`)
-template with details entered through a form, and saves a new generated document.
+A simple local desktop app (Tkinter GUI) that fills Word (`.docx`) templates
+with data entered through a form, or read in bulk from an Excel source file.
 No internet connection or web server needed - runs entirely on your PC.
 
-## Current status
+## Modes (radio button)
 
-This is the **FACTURA Generator** mode only. A second document type is planned
-but disabled in the UI for now (radio button placeholder).
-
-## How it works
-
-1. You keep your existing Word template, but add unique placeholder tokens
-   (like `{{NR}}`, `{{NUME}}`, `{{DATA}}`) at each spot where a value should
-   be inserted. See `field_config.py` for the full list of tokens.
-2. Put that edited template at `templates/factura_template.docx`.
-3. Run the app, fill the form, click **GENERATE**.
-4. A new `.docx` is created in the `output/` folder with your values
-   inserted in place of the tokens, original template formatting preserved.
-5. Fields defined as "uppercase+bold" are automatically converted to
-   UPPERCASE and made bold. `profil_ales` and `tipul_geamului` are underlined.
+1. **FACTURA Generator** - manual form entry, fills one template and saves
+   one output document. See "FACTURA Generator" section below.
+2. **SOMATII Generator** - batch mode, reads `source_excel.xlsx` and generates
+   three sets of Word documents for every matching company. See "SOMATII
+   Generator" section below.
 
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-```
-
-Place your prepared template at:
-
-```
-templates/factura_template.docx
-```
-
-Run:
-
-```bash
 python main.py
 ```
 
-## Finding where to put placeholders in your template
+---
 
-If you're not sure where exactly the placeholder text needs to go inside
-your existing `.docx`, run:
+## FACTURA Generator
+
+Fills in a single Word template using manually entered form fields.
+
+### How it works
+
+1. Your Word template must contain placeholder tokens like `{{NR}}`,
+   `{{NUME}}`, `{{DATA}}` at each spot where a value should be inserted
+   (see `field_config.py` for the full list).
+2. Place the prepared template at `templates/factura_template.docx`.
+3. Run the app, select "FACTURA Generator", fill the form, click GENERATE.
+4. A new `.docx` is created in `output/` with your values inserted, keeping
+   the template's original formatting.
+5. Fields marked "uppercase+bold" in `field_config.py` are automatically
+   converted to UPPERCASE and bolded. `profil_ales` and `tipul_geamului`
+   are underlined.
+
+### Finding placeholder spots
 
 ```bash
 python inspect_template.py templates/factura_template.docx
 ```
 
-This prints out every piece of text currently in the document (body, tables,
-headers, footers), so you can locate the exact line/cell that needs a token,
-open the file in Word, and type the token there (e.g. replace a blank
-underscore line with `{{NR}}`).
+Prints every piece of existing text (body, tables, headers, footers) so you
+can find where to type each `{{TOKEN}}` in Word.
 
-## Fields (FACTURA Generator)
+---
 
-| UI Label | Field key | Placeholder token | Format |
-|---|---|---|---|
-| NR: | nr | `{{NR}}` | number |
-| Data: | data | `{{DATA}}` | DD.MM.YYYY |
-| NAME: | nume | `{{NUME}}` | text (UPPERCASE, bold) |
-| Loc.: | loc | `{{LOC}}` | text (UPPERCASE, bold) |
-| Adresa: | adresa | `{{ADRESA}}` | text (UPPERCASE, bold) |
-| Tel: | tel | `{{TEL}}` | text (UPPERCASE, bold) |
-| Cod fiscal: | cod_fiscal | `{{COD_FISCAL}}` | text (UPPERCASE, bold) |
-| Inmatriculare la RC: | inmatriculare_rc | `{{INMATRICULARE_RC}}` | text (UPPERCASE, bold) |
-| Cont: | cont | `{{CONT}}` | IBAN (UPPERCASE, bold) |
-| Banca: | banca | `{{BANCA}}` | text (UPPERCASE, bold) |
-| Reprezentata prin: | reprezentata_prin | `{{REPREZENTATA_PRIN}}` | text (UPPERCASE, bold) |
-| CNP: | cnp | `{{CNP}}` | number (UPPERCASE, bold) |
-| Anexa contract: | anexa_contract | `{{ANEXA_CONTRACT}}` | text (UPPERCASE, bold) |
-| Termen de zile: | termen_zile | `{{TERMEN_ZILE}}` | number (UPPERCASE, bold) |
-| Pana la data de: | pana_la_data | `{{PANA_LA_DATA}}` | DD.MM.YYYY (UPPERCASE, bold) |
-| Profil ales: | profil_ales | `{{PROFIL_ALES}}` | text (underlined) |
-| Tipul geamului: | tipul_geamului | `{{TIPUL_GEAMULUI}}` | text (underlined) |
+## SOMATII Generator
+
+Batch-generates three official documents from a single Excel data source:
+individual **somatie** letters (one per company), a combined **envelope**
+document (one printable page per company), and a combined **borderou**
+(dispatch register) document with one table row per company.
+
+### Required files (same folder as the app / .exe)
+
+- `source_excel.xlsx` - source data workbook
+- `template_somatie.docx` - somatie letter template
+- `template_envelope-2.docx` - envelope template
+- `template_borderou-3.docx` - borderou (dispatch register) template
+
+### Source Excel format
+
+Data is read from the **last sheet** in the workbook. Only rows where
+column **L** equals `somam` (matches `somăm`, with or without diacritics,
+case-insensitive) are included. Relevant columns:
+
+| Column | Meaning |
+|---|---|
+| B | CompanyName |
+| H | CompanyTotal (decimal, e.g. 1234.5 -> shown as `1.234,50`) |
+| I | CompanyCUI |
+| J | CompanyJ (Registrul Comertului number) |
+| K | CompanyAddress (raw, see format below) |
+| L | Filter column - only `somam`/`somăm` rows are processed |
+
+**Raw address format in column K** (always comma-separated, judet and
+localitate first, then street/number last, and may include extra
+apartment/block info after the number):
+
+```
+JUD. MURES, TARGU MURES, STRADA O STRADA, NR. 28
+JUD. CLUJ, CLUJ-NAPOCA, STR. AVIATORILOR, NR. 12, BL. A2, AP. 5
+```
+
+The app automatically reorders and reformats this for each document type
+(see table below). Only the first letter of each word is capitalized
+(Title Case), not full uppercase, except where noted.
+
+### Output per document type
+
+| Document | Output | Address format used |
+|---|---|---|
+| Somatie | `somatie_<CompanyName>.docx` - one file per company | `Strada, Nr., Localitate, Jud. Judet` e.g. `Str. O Strada, Nr. 28, Targu Mures, Jud. Mures` |
+| Envelope | `envelope_toate_companiile.docx` - one combined file, one page per company | Line 1: `Localitate, Strada, Nr.` Line 2: `Jud. Judet`. `CompanyName` shown in full UPPERCASE |
+| Borderou | `borderou_toate_companiile.docx` - one combined file, table filled row by row | `Localitate, Strada, Nr., Judet` |
+
+Placeholders replaced in each template: `CompanyName`, `CompanyAddress`,
+`CompanyCUI`, `CompanyJ`, `CompanyTotal` (somatie only). All formatting
+(bold, etc.) already present around the placeholder text in the templates
+is preserved.
+
+### Running it
+
+1. Put `source_excel.xlsx` and the three `template_*.docx` files in the
+   same folder as `main.py` (or next to the `.exe`).
+2. Run the app, select "SOMATII Generator".
+3. Click GENERATE.
+4. Watch the output log panel - it prints which company is being read and
+   which document is being written, in real time, for debugging.
+5. All 4+ output files (N somatie files + 1 envelope + 1 borderou) are
+   saved in the same folder.
+
+---
 
 ## Building a standalone .exe (optional)
 
-Once the app works, package it with PyInstaller:
-
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name FacturaGenerator main.py
+pyinstaller --onefile --windowed --name DocumentGenerator main.py
 ```
 
-The `.exe` will be in `dist/FacturaGenerator.exe`. Make sure to also copy
-the `templates/` folder next to the `.exe` (PyInstaller does not bundle it
-automatically unless you add `--add-data`).
+Copy the `templates/` folder (for FACTURA mode) and the `source_excel.xlsx`
++ `template_*.docx` files (for SOMATII mode) next to the generated `.exe` -
+PyInstaller does not bundle data files automatically.
 
-## Next step
+## Files
 
-Send over the template `.docx` and a screenshot of the layout - once shared,
-the placeholder tokens can be inserted at the exact right spots and
-`field_config.py` / `PLACEHOLDER_MAP` adjusted to match precisely.
+| File | Purpose |
+|---|---|
+| `main.py` | Tkinter GUI, both modes |
+| `field_config.py` | FACTURA Generator field/placeholder definitions |
+| `inspect_template.py` | Dumps template text to help locate placeholder spots |
+| `address_utils.py` | Shared address parsing/reformatting logic for SOMATII |
+| `somatie_generator.py` | SOMATII batch generation logic (Excel read + 3 doc writers) |
+| `requirements.txt` | Python dependencies |
