@@ -24,13 +24,13 @@ FACTURA_FIELDS = [
     {"key": "banca", "label": "Banca:", "type": "text"},
     {"key": "reprezentata_prin", "label": "Reprezentata prin:", "type": "text"},
     {"key": "cnp", "label": "CNP:", "type": "text"},
-    {"key": "termen_livrare", "label": "Termen livrare (zile):", "type": "number", "section_break": true},
+    {"key": "termen_livrare", "label": "Termen livrare (zile):", "type": "number", "section_break": True},
     {"key": "data_livrare", "label": "Data livrare (pana la):", "type": "date"},
     {"key": "curs_bnr", "label": "Curs BNR:", "type": "text"},
     {"key": "valoare_contract", "label": "Valoare contract:", "type": "text"},
     {"key": "avans_contract", "label": "Avans contract:", "type": "text"},
     {"key": "diferenta_contract", "label": "Diferenta contract:", "type": "text"},
-    {"key": "profil_ales", "label": "Profil ales:", "type": "text", "section_break": true},
+    {"key": "profil_ales", "label": "Profil ales:", "type": "text", "section_break": True},
     {"key": "tipul_geamului", "label": "Tipul geamului:", "type": "text"},
 ]
 

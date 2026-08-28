@@ -109,7 +109,7 @@ class DocumentGeneratorApp(tk.Tk):
         for field in FACTURA_FIELDS:
             key = field["key"]
             raw_value = self.entries[key].get().strip()
-            if field.get("required", true) and not raw_value:
+            if field.get("required", True) and not raw_value:
                 raise ValueError(f"Field '{field['label']}' is required.")
             if field.get("type") == "date" and raw_value and not validate_date(raw_value):
                 raise ValueError(f"Field '{field['label']}' must be in DD.MM.YYYY format.")
@@ -136,7 +136,7 @@ class DocumentGeneratorApp(tk.Tk):
         messagebox.showinfo("Success", f"Document generated:\n{output_path}")
 
     def generate_factura_document(self, values: dict) -> str:
-        os.makedirs(OUTPUT_DIR, exist_ok=true)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
         doc = Document(TEMPLATE_PATH)
         ordered_keys = sorted(values.keys(), key=lambda k: -len(PLACEHOLDER_MAP.get(k, "")))
         for key in ordered_keys:
@@ -165,10 +165,10 @@ class DocumentGeneratorApp(tk.Tk):
         self.somatii_generate_btn = tk.Button(btn_frame, text="GENERATE", font=("Segoe UI", 14, "bold"), bg="#2e7d32", fg="white", activebackground="#1b5e20", height=2, command=self.on_generate_somatii)
         self.somatii_generate_btn.pack(fill="x")
         log_frame = ttk.Frame(self.mode_container, padding=(10, 5, 10, 10))
-        log_frame.pack(fill="both", expand=true)
+        log_frame.pack(fill="both", expand=True)
         ttk.Label(log_frame, text="Output log:", font=("Segoe UI", 9, "bold")).pack(anchor="w")
         self.somatii_log = scrolledtext.ScrolledText(log_frame, height=24, font=("Consolas", 9), state="disabled", bg="#1e1e1e", fg="#d4d4d4", insertbackground="#d4d4d4")
-        self.somatii_log.pack(fill="both", expand=true, pady=(4, 0))
+        self.somatii_log.pack(fill="both", expand=True, pady=(4, 0))
 
     def _log_somatii(self, message: str):
         def append():
@@ -183,7 +183,7 @@ class DocumentGeneratorApp(tk.Tk):
         self.somatii_log.delete("1.0", "end")
         self.somatii_log.config(state="disabled")
         self.somatii_generate_btn.config(state="disabled", text="GENERATING...")
-        threading.Thread(target=self._run_somatii_batch, daemon=true).start()
+        threading.Thread(target=self._run_somatii_batch, daemon=True).start()
 
     def _run_somatii_batch(self):
         try:
@@ -198,7 +198,7 @@ class DocumentGeneratorApp(tk.Tk):
             self.after(0, lambda: self.somatii_generate_btn.config(state="normal", text="GENERATE"))
 
 
-def replace_placeholder_everywhere(doc, placeholder: str, value: str, bold: bool = false, underline: bool = false):
+def replace_placeholder_everywhere(doc, placeholder: str, value: str, bold: bool = False, underline: bool = False):
     targets = list(doc.paragraphs)
     for table in doc.tables:
         for row_ in table.rows:
@@ -225,15 +225,15 @@ def _replace_in_paragraph(paragraph, placeholder: str, value: str, bold: bool, u
             run.text = ""
         paragraph.runs[0].text = new_full_text
         if bold:
-            paragraph.runs[0].bold = true
+            paragraph.runs[0].bold = True
         if underline:
-            paragraph.runs[0].underline = true
+            paragraph.runs[0].underline = True
     else:
         run = paragraph.add_run(new_full_text)
         if bold:
-            run.bold = true
+            run.bold = True
         if underline:
-            run.underline = true
+            run.underline = True
 
 
 if __name__ == "__main__":
