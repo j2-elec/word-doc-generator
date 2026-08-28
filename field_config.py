@@ -1,19 +1,14 @@
 """
-Field configuration for the FACTURA Generator.
+Field configuration for the FACTURA Generator (contract mode).
 
-FACTURA_FIELDS: defines the UI form fields, in order, for the FACTURA generator.
-PLACEHOLDER_MAP: maps each field key to the placeholder token that must exist
-                  inside the Word template (templates/factura_template.docx).
+FACTURA_FIELDS: defines the UI form fields, in order, shown for this mode.
+PLACEHOLDER_MAP: maps each field key to the literal placeholder text that
+                  must exist inside templates/template_contract.docx.
 UPPERCASE_BOLD_FIELDS: field keys whose value should be shown UPPERCASE + BOLD.
 UNDERLINE_FIELDS: field keys whose value should be underlined.
 
-IMPORTANT:
-Open your .docx template in Word and make sure each corresponding spot
-contains the exact placeholder text shown below (including double curly braces),
-e.g. type {{NR}} where the invoice number should appear.
-You can format the placeholder text itself however you like (font, size) -
-the script will insert plain text into that same run's paragraph and then
-apply bold/underline only for the fields listed below.
+These placeholder tokens match template_contract.docx exactly as provided
+(bare words, no curly braces, already bold/underlined in the template itself).
 """
 
 FACTURA_FIELDS = [
@@ -29,41 +24,33 @@ FACTURA_FIELDS = [
     {"key": "banca", "label": "Banca:", "type": "text"},
     {"key": "reprezentata_prin", "label": "Reprezentata prin:", "type": "text"},
     {"key": "cnp", "label": "CNP:", "type": "text"},
-
-    {"key": "anexa_contract", "label": "Anexa contract:", "type": "text", "section_break": True},
-    {"key": "termen_zile", "label": "Termen de zile:", "type": "number"},
-    {"key": "pana_la_data", "label": "Pana la data de:", "type": "date"},
-
-    {"key": "profil_ales", "label": "Profil ales:", "type": "text", "section_break": True},
+    {"key": "termen_livrare", "label": "Termen livrare (zile):", "type": "number", "section_break": true},
+    {"key": "data_livrare", "label": "Data livrare (pana la):", "type": "date"},
+    {"key": "curs_bnr", "label": "Curs BNR:", "type": "text"},
+    {"key": "valoare_contract", "label": "Valoare contract:", "type": "text"},
+    {"key": "avans_contract", "label": "Avans contract:", "type": "text"},
+    {"key": "diferenta_contract", "label": "Diferenta contract:", "type": "text"},
+    {"key": "profil_ales", "label": "Profil ales:", "type": "text", "section_break": true},
     {"key": "tipul_geamului", "label": "Tipul geamului:", "type": "text"},
 ]
 
 PLACEHOLDER_MAP = {
-    "nr": "{{NR}}",
-    "data": "{{DATA}}",
-    "nume": "{{NUME}}",
-    "loc": "{{LOC}}",
-    "adresa": "{{ADRESA}}",
-    "tel": "{{TEL}}",
-    "cod_fiscal": "{{COD_FISCAL}}",
-    "inmatriculare_rc": "{{INMATRICULARE_RC}}",
-    "cont": "{{CONT}}",
-    "banca": "{{BANCA}}",
-    "reprezentata_prin": "{{REPREZENTATA_PRIN}}",
-    "cnp": "{{CNP}}",
-    "anexa_contract": "{{ANEXA_CONTRACT}}",
-    "termen_zile": "{{TERMEN_ZILE}}",
-    "pana_la_data": "{{PANA_LA_DATA}}",
-    "profil_ales": "{{PROFIL_ALES}}",
-    "tipul_geamului": "{{TIPUL_GEAMULUI}}",
+    "nr": "NrContract", "data": "DataContract", "nume": "NumeCompanie",
+    "loc": "LocalitateCompanie", "adresa": "AdresaCompanie", "tel": "TelCompanie",
+    "cod_fiscal": "CodFiscalCompanie", "inmatriculare_rc": "NumarInmatriculare",
+    "cont": "ContCompanie", "banca": "BancaCompanie",
+    "reprezentata_prin": "ReprezentantCompanie", "cnp": "CNPReprezentantCompanie",
+    "termen_livrare": "TermenLivrare", "data_livrare": "DataLivrare",
+    "curs_bnr": "CursBNR", "valoare_contract": "ValoareContract",
+    "avans_contract": "AvansContract", "diferenta_contract": "DiferentaContract",
+    "profil_ales": "SerieProfilAles", "tipul_geamului": "TipGeamAles",
 }
 
 UPPERCASE_BOLD_FIELDS = {
     "nume", "loc", "adresa", "tel", "cod_fiscal", "inmatriculare_rc",
-    "cont", "banca", "reprezentata_prin", "cnp",
-    "anexa_contract", "termen_zile", "pana_la_data",
+    "cont", "banca", "reprezentata_prin", "cnp", "termen_livrare",
+    "data_livrare", "curs_bnr", "valoare_contract", "avans_contract",
+    "diferenta_contract",
 }
 
-UNDERLINE_FIELDS = {
-    "profil_ales", "tipul_geamului",
-}
+UNDERLINE_FIELDS = {"profil_ales", "tipul_geamului"}
