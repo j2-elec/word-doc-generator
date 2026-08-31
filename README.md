@@ -28,15 +28,15 @@ The template must contain these literal placeholder tokens (no curly braces):
 |---|---|
 | NR | `NrContract` |
 | Data | `DataContract` |
-| NAME | `NumeCompanie` |
-| Loc. | `LocalitateCompanie` |
-| Adresa | `AdresaCompanie` |
-| Tel | `TelCompanie` |
-| Cod fiscal | `CodFiscalCompanie` |
-| Inmatriculare la RC | `NumarInmatriculare` |
+| Nume | `NumeCompanie` |
+| Loc. | `TownCompany` |
+| Adresa | `AdressCompany` |
+| Tel | `PhoneCompany` |
+| Cod fiscal | `FiscalCodeCompany` |
+| Inmatriculare la RC | `NumberRCCompany` |
 | Cont | `ContCompanie` |
-| Banca | `BancaCompanie` |
-| Reprezentata prin | `ReprezentantCompanie` |
+| Banca | `BankCompany` |
+| Reprezentata prin | `RepresentativeCompany` |
 | CNP | `CNPReprezentantCompanie` |
 | Termen livrare | `TermenLivrare` |
 | Data livrare | `DataLivrare` |
@@ -49,7 +49,7 @@ The template must contain these literal placeholder tokens (no curly braces):
 
 The program replaces longer tokens first. This is necessary because `ReprezentantCompanie` is contained inside `CNPReprezentantCompanie`; replacing in the opposite order would corrupt the CNP placeholder.
 
-Generated files are saved under `output/` as `Contract_<number>_<timestamp>.docx`.
+Generated files are saved under `output/` as `NumeCompanie_CT-Vanzare-Cumparare-NICOMY-NDY.docx`.
 
 ## SOMATII Generator
 
